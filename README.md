@@ -35,11 +35,10 @@ docker-compose up --remove-orphans --build --detach
 or 
 
 ```
-make up
+make deploy/up
 ```
 
-Once running, the following links will let you explore the
-various components of the system:
+Once running, the following links will let you explore the various components of the system:
 
 - [password generator service](http://localhost:5050/)
 - [digit service](http://localhost:5051/)
@@ -57,5 +56,11 @@ docker-compose down
 or 
 
 ```
-make down
+make deploy/down
+```
+
+To destroy the environment instead of stop, use the following command.
+
+```shell
+make deploy/destroy
 ```
