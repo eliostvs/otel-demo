@@ -67,7 +67,7 @@ deploy/collector:
 
 .PHONY: deploy/destroy
 deploy/destroy:
-	docker-compose rm -fsv
+	docker-compose rm -fs
 
 .PHONY: deploy/down
 deploy/down:
@@ -102,7 +102,6 @@ run/load:
 	GENERATOR_URL=http://localhost:5000 go run cmd/load/main.go
 
 .PHONY: run/all
-run/load:
 run/all: run/digit run/lower run/upper run/special run/generator run/load
 
 .PHONY: run/uptrace
