@@ -1,0 +1,25 @@
+secret_key: jwt
+
+site:
+  scheme: 'http'
+  host: '0.0.0.0'
+
+listen:
+  # OTLP/gRPC API
+  grpc: '0.0.0.0:14317'
+  # OTLP/HTTP API and Uptrace API
+  http: '0.0.0.0:14318'
+
+ch:
+  dsn: 'clickhouse://default:@clickhouse:9000/uptrace?sslmode=disable'
+
+retention:
+  ttl: 7 DAY
+
+projects:
+  - id: 1
+    name: Uptrace
+    token: secret1
+  - id: 2
+    name: Playground
+    token: secret2

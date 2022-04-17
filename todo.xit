@@ -1,0 +1,22 @@
+[~] Use context shared tracer
+[~] Test chi web framework
+[x] Create simulator
+[x] Re-write lower app in Go
+[x] Test web.Handler and telemetry.JSON
+[x] Re-write digit app in Go
+[x] Re-write special app in Go
+[x] Re-write upper app in Go
+[x] Re-write generator app in Go
+[x] Test the apps
+[x] Re-write load app in Go
+[x] Fix server port init
+[x] Create apps dockerfiles
+[x] Handle http status != 200 in the clients
+
+Create metrics
+[ ] Create sub-tasks
+
+Add logs
+[ ] Create sub-tasks
+
+# https://xit.jotaen.net/
