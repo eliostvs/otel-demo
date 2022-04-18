@@ -78,7 +78,7 @@ func generate(ctx context.Context) (string, error) {
 	var password []string
 	span.AddEvent("selecting_password_length")
 	work(0.00001, 0.00001)
-	passwordLength := random.IntRange(8, 25)
+	passwordLength := random.NumberInRange(8, 25)
 	span.SetAttributes(attribute.Int("password.length", passwordLength))
 
 	i := 1
@@ -115,7 +115,7 @@ func getChars(ctx context.Context, spanName, url string) ([]string, error) {
 	defer span.End()
 
 	var x []string
-	for i := 0; i < random.IntRange(0, 3); i++ {
+	for i := 0; i < random.NumberInRange(0, 3); i++ {
 		log.Printf("%s, iteration_loop_%d\n", spanName, i)
 		span.AddEvent(fmt.Sprintf("iteration_%d", i), trace.WithAttributes(attribute.Int("iteration", i)))
 

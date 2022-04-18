@@ -2,6 +2,8 @@ package random
 
 import (
 	"math/rand"
+
+	"github.com/username/otel-playground/internal/lib/constraints"
 )
 
 // Normalvariate is the normal distribution.
@@ -15,6 +17,6 @@ func Choice[T any](array []T) T {
 	return array[idx]
 }
 
-func IntRange(min, max int) int {
-	return rand.Intn(max-min) + min
+func NumberInRange[T constraints.Numbers](min, max T) T {
+	return T(rand.Intn(int(max)-int(min)) + int(min))
 }
