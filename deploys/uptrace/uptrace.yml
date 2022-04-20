@@ -1,5 +1,7 @@
 secret_key: jwt
 
+debug: true
+
 site:
   scheme: 'http'
   host: '0.0.0.0'

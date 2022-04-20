@@ -1,2 +1,0 @@
-FROM uptrace/uptrace:latest
-COPY uptrace.yml /etc/uptrace/uptrace.yml

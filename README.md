@@ -46,6 +46,7 @@ Once running, the following links will let you explore the various components of
 - [lower service](http://localhost:5053/)
 - [upper service](http://localhost:5054/)
 - [Uptrace](http://localhost:14318/)
+- [Grafana](http://localhost:3000/)
 
 When you are ready to shutdown the system, use the following command.
 

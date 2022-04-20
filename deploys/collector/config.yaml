@@ -8,17 +8,18 @@ processors:
   batch:
 
 exporters:
-  jaeger:
-    endpoint: jaeger:14250
-    tls:
-      insecure: true
+  logging:
+    loglevel: debug
   otlp:
     endpoint: uptrace:14317
     headers:
       uptrace-dsn: 'http://secret2@uptrace:14317/2'
     tls:
       insecure: true
-
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    resource_to_telemetry_conversion:
+      enabled: true
 
 service:
   telemetry:
@@ -26,6 +27,10 @@ service:
       level: "debug"
   pipelines:
     traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlp ]
+    metrics:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ prometheus, otlp ]

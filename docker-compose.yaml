@@ -4,6 +4,7 @@ services:
 
   clickhouse:
     image: "yandex/clickhouse-server:21.12"
+    container_name: clickhouse
     environment:
       - CLICKHOUSE_DB=uptrace
     healthcheck:
@@ -13,27 +14,64 @@ services:
       retries: 30
 
   uptrace:
-    build:
-      context: deploys/uptrace
+    image: "uptrace/uptrace:latest"
+    container_name: uptrace
     ports:
       - "14317:14317/tcp" # OTLP
       - "14318:14318/tcp" # UI and HTTP API
+    volumes:
+      - ./deploys/uptrace/uptrace.yml:/etc/uptrace/uptrace.yml
     environment:
       - DEBUG=1
     depends_on:
       clickhouse:
         condition: service_healthy
-        
+
   collector:
-    build:
-      context: deploys/collector
+    image: "otel/opentelemetry-collector:0.48.0"
+    container_name: collector
     ports:
       - "4317:4317/tcp"
       - "4318:4318/tcp"
+      - "8889:8889"
+      - "8888:8888/tcp"
+    volumes:
+      - ./deploys/collector/config.yaml:/etc/otelcol/config.yaml
+    command:
+      - "--config=/etc/otelcol/config.yaml"
     restart: on-failure
     depends_on:
       - uptrace
-        
+
+  prometheus:
+    image: "prom/prometheus:v2.29.2"
+    container_name: prometheus
+    ports:
+      - "9090:9090/tcp"
+    volumes:
+      - ./deploys/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--enable-feature=exemplar-storage"
+    depends_on:
+      - collector
+  
+  grafana:
+    image: grafana/grafana:8.3.3
+    container_name: grafana
+    ports:
+      - "3000:3000/tcp"
+    volumes:
+      - ./deploys/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ORG_ROLE=Editor
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_USERS_DEFAULT_THEME=light
+    depends_on:
+      - prometheus
+
   digit:
     build:
       context: .

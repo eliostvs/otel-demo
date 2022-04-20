@@ -53,6 +53,11 @@ func main() {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
 
+	err = telemetry.RegisterMeter(ctx, serviceName, serviceVersion)
+	if err != nil {
+		log.Fatalf("failed to register meter: %v\n", err)
+	}
+
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(digitHandler))
 	web.HealthCheckHandler(mux, serviceName, serviceVersion)

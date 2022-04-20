@@ -1,2 +1,0 @@
-FROM otel/opentelemetry-collector:0.48.0
-COPY config.yaml /etc/otelcol/config.yaml
