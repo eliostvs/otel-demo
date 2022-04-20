@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 
 	"go.opentelemetry.io/otel"
@@ -17,8 +16,7 @@ import (
 )
 
 var (
-	globalTracer        = defaultTracer()
-	setGlobalTracerOnce sync.Once
+	globalTracer = defaultTracer()
 )
 
 type tracerHolder struct {
@@ -31,27 +29,23 @@ func defaultTracer() *atomic.Value {
 	return v
 }
 
-func setGlobalTracer(t trace.Tracer) {
-	setGlobalTracerOnce.Do(
-		func() {
-			globalTracer.Store(tracerHolder{t})
-		},
-	)
+func SetTracer(t trace.Tracer) {
+	globalTracer.Store(tracerHolder{t})
 }
 
 func Tracer() trace.Tracer {
 	return globalTracer.Load().(tracerHolder).t
 }
 
-func RegisterTracer(ctx context.Context, name, version string) error {
+func RegisterTracer(ctx context.Context, name, version string) (func() error, error) {
 	resource, err := newResource(ctx, name, version)
 	if err != nil {
-		return fmt.Errorf("failed to create resource: %w", err)
+		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
 	exporter, err := NewOTLPTraceExporter(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create exporter: %w", err)
+		return nil, fmt.Errorf("failed to create exporter: %w", err)
 	}
 
 	provider := sdktrace.NewTracerProvider(
@@ -60,8 +54,6 @@ func RegisterTracer(ctx context.Context, name, version string) error {
 		sdktrace.WithBatcher(exporter),
 	)
 
-	otel.SetTracerProvider(provider)
-
 	otel.SetTextMapPropagator(
 		propagation.NewCompositeTextMapPropagator(
 			propagation.TraceContext{},
@@ -69,14 +61,11 @@ func RegisterTracer(ctx context.Context, name, version string) error {
 		),
 	)
 
-	setGlobalTracer(
-		provider.Tracer(
-			name,
-			trace.WithInstrumentationVersion(version),
-		),
-	)
+	otel.SetTracerProvider(provider)
 
-	return nil
+	return func() error {
+		return provider.Shutdown(context.Background())
+	}, nil
 }
 
 func NewOTLPTraceExporter(ctx context.Context) (*otlptrace.Exporter, error) {

@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -21,30 +20,25 @@ import (
 )
 
 var (
-	globalMeter        = defaultMeter()
-	setGlobalMeterOnce sync.Once
+	globalMeter = defaultMeter()
 )
 
 type meterHolder struct {
-	t metric.Meter
+	m metric.Meter
 }
 
 func defaultMeter() *atomic.Value {
 	v := &atomic.Value{}
-	v.Store(meterHolder{t: nonrecording.NewNoopMeter()})
+	v.Store(meterHolder{m: nonrecording.NewNoopMeter()})
 	return v
 }
 
-func setGlobalMeter(t metric.Meter) {
-	setGlobalMeterOnce.Do(
-		func() {
-			globalMeter.Store(meterHolder{t})
-		},
-	)
+func SetMeter(meter metric.Meter) {
+	globalMeter.Store(meterHolder{meter})
 }
 
 func Meter() metric.Meter {
-	return globalMeter.Load().(meterHolder).t
+	return globalMeter.Load().(meterHolder).m
 }
 
 func RegisterMeter(ctx context.Context, name, version string) (func() error, error) {

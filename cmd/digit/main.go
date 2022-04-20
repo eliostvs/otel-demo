@@ -48,15 +48,21 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
+	shutdownTracer, err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
 	if err != nil {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
+	defer func() {
+		_ = shutdownTracer()
+	}()
 
-	err = telemetry.RegisterMeter(ctx, serviceName, serviceVersion)
-	if err != nil {
-		log.Fatalf("failed to register meter: %v\n", err)
-	}
+	// shutdownMeter, err := telemetry.RegisterMeter(ctx, serviceName, serviceVersion)
+	// if err != nil {
+	// 	log.Fatalf("failed to register meter: %v\n", err)
+	// }
+	// defer func() {
+	// 	_ = shutdownMeter()
+	// }()
 
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(digitHandler))

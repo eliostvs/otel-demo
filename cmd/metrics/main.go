@@ -25,7 +25,9 @@ func main() {
 		log.Fatal(err)
 
 	}
-	defer shutdown()
+	defer func() {
+		_ = shutdown()
+	}()
 
 	meter = global.MeterProvider().Meter("app_test")
 	go counterMetric(ctx)
