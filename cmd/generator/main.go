@@ -84,7 +84,7 @@ func generatorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func generate(ctx context.Context) (string, error) {
-	spctx, span := telemetry.Span(ctx, tracer, "generator.generate")
+	spctx, span := tracer.Start(ctx, "generator.generate", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	var password []string
@@ -123,7 +123,7 @@ func generate(ctx context.Context) (string, error) {
 }
 
 func getChars(ctx context.Context, spanName, url string) ([]string, error) {
-	spctx, span := telemetry.Span(ctx, tracer, spanName)
+	spctx, span := tracer.Start(ctx, spanName, trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	var x []string

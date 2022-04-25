@@ -81,7 +81,7 @@ func digitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func randomDigit(ctx context.Context) rune {
-	_, span := telemetry.Span(ctx, tracer, "random_digit")
+	_, span := tracer.Start(ctx, "random_digit", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	work(0.0003, 0.0001)
@@ -96,9 +96,14 @@ func randomDigit(ctx context.Context) rune {
 }
 
 func processDigit(ctx context.Context, char rune) rune {
+	opts := []trace.SpanStartOption{
+		trace.WithAttributes(attribute.String("char", string(char))),
+		trace.WithSpanKind(trace.SpanKindInternal),
+	}
+
 	attr := attribute.String("char", string(char))
 
-	ctx, span := telemetry.Span(ctx, tracer, "process_digit", trace.WithAttributes(attr))
+	ctx, span := tracer.Start(ctx, "process_digit", opts...)
 	defer span.End()
 
 	work(0.0001, 0.00005)
@@ -113,7 +118,7 @@ func processDigit(ctx context.Context, char rune) rune {
 
 	// these chars are extra slow
 	if collections.SliceContains(char, []rune{'4', '5', '6'}) {
-		if _, span := telemetry.Span(ctx, tracer, "extra_process_digit", trace.WithAttributes(attr)); span != nil {
+		if _, span := tracer.Start(ctx, "extra_process_digit", opts...); span != nil {
 			work(0.005, 0.0005)
 			span.End()
 		}
@@ -123,9 +128,12 @@ func processDigit(ctx context.Context, char rune) rune {
 }
 
 func renderDigit(ctx context.Context, char rune) web.Envelope {
-	attr := attribute.String("char", string(char))
+	opts := []trace.SpanStartOption{
+		trace.WithAttributes(attribute.String("char", string(char))),
+		trace.WithSpanKind(trace.SpanKindInternal),
+	}
 
-	_, span := telemetry.Span(ctx, tracer, "render_digit", trace.WithAttributes(attr))
+	_, span := tracer.Start(ctx, "render_digit", opts...)
 	defer span.End()
 
 	work(0.0002, 0.0001)

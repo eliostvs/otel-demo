@@ -121,7 +121,12 @@ func randomLower(ctx context.Context) (rune, error) {
 }
 
 func getDigit(ctx context.Context, char rune) (string, error) {
-	spctx, span := telemetry.Span(ctx, tracer, "digit", trace.WithAttributes(attribute.String("char", string(char))))
+	spctx, span := tracer.Start(
+		ctx,
+		"digit",
+		trace.WithAttributes(attribute.String("char", string(char))),
+		trace.WithSpanKind(trace.SpanKindInternal),
+	)
 	defer span.End()
 
 	var res struct {
@@ -136,7 +141,12 @@ func getDigit(ctx context.Context, char rune) (string, error) {
 }
 
 func work(ctx context.Context, await float64, spanName string, char rune) {
-	_, span := telemetry.Span(ctx, tracer, spanName, trace.WithAttributes(attribute.String("char", string(char))))
+	_, span := tracer.Start(
+		ctx,
+		spanName,
+		trace.WithAttributes(attribute.String("char", string(char))),
+		trace.WithSpanKind(trace.SpanKindInternal),
+	)
 	time.Sleep(time.Duration(await))
 	span.End()
 }

@@ -105,7 +105,7 @@ func specialHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func randomSpecial(ctx context.Context) rune {
-	_, span := telemetry.Span(ctx, tracer, "random_special")
+	_, span := tracer.Start(ctx, "random_special", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	work(0.0003, 0.0001)
@@ -116,24 +116,19 @@ func randomSpecial(ctx context.Context) rune {
 }
 
 func processSpecial(ctx context.Context, char rune) (rune, error) {
-	spctx, span := telemetry.Span(
-		ctx,
-		tracer,
-		"process_special",
+	opts := []trace.SpanStartOption{
 		trace.WithAttributes(attribute.String("char", string(char))),
-	)
+		trace.WithSpanKind(trace.SpanKindInternal),
+	}
+
+	spctx, span := tracer.Start(ctx, "process_special", opts...)
 	defer span.End()
 
 	work(0.0001, 0.00005)
 
 	// these chars are extra slow
 	if collections.SliceContains(char, []rune{'$', '@', '#', '?', '%'}) {
-		if _, span := telemetry.Span(
-			spctx,
-			tracer,
-			"extra_process_special",
-			trace.WithAttributes(attribute.String("char", string(char))),
-		); span != nil {
+		if _, span := tracer.Start(spctx, "extra_process_special", opts...); span != nil {
 			work(0.005, 0.0005)
 			span.End()
 		}
@@ -152,7 +147,9 @@ func processSpecial(ctx context.Context, char rune) (rune, error) {
 func renderSpecial(ctx context.Context, char rune) interface{} {
 	attr := attribute.String("char", string(char))
 
-	_, span := telemetry.Span(ctx, tracer, "render_special", trace.WithAttributes(attr))
+	_, span := tracer.Start(
+		ctx, "render_special", trace.WithAttributes(attr), trace.WithSpanKind(trace.SpanKindInternal),
+	)
 	defer span.End()
 
 	span.AddEvent("processing special char", trace.WithAttributes(attr))

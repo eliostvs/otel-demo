@@ -51,14 +51,6 @@ func newOTLPTraceExporter(ctx context.Context) (*otlptrace.Exporter, error) {
 	)
 }
 
-func Span(ctx context.Context, tracer trace.Tracer, name string, opts ...trace.SpanStartOption) (
-	context.Context,
-	trace.Span,
-) {
-	opts = append(opts, trace.WithSpanKind(trace.SpanKindInternal))
-	return tracer.Start(ctx, name, opts...)
-}
-
 func RecordError(ctx context.Context, err error) {
 	span := trace.SpanFromContext(ctx)
 	span.RecordError(err, trace.WithStackTrace(true))

@@ -104,23 +104,23 @@ func upperHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func processUpper(ctx context.Context, char rune) (rune, error) {
-	attr := attribute.String("char", string(char))
+	withAttr := trace.WithAttributes(attribute.String("char", string(char)))
 
-	spctx, span := telemetry.Span(ctx, tracer, "random_upper", trace.WithAttributes(attr))
+	spctx, span := tracer.Start(ctx, "random_upper", withAttr, trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
-	span.AddEvent("processing_upper_char", trace.WithAttributes(attr))
+	span.AddEvent("processing_upper_char", withAttr)
 	work(0.0001, 0.00005)
 
 	// 1/100 calls is extra slow
 	if rand.Float64() > 0.99 {
-		span.AddEvent("extra_work", trace.WithAttributes(attr))
+		span.AddEvent("extra_work", withAttr)
 		work(0.0002, 0.0001)
 	}
 
 	// these chars are extra slow
 	if collections.SliceContains(char, []rune{'Z', 'X', 'R'}) {
-		if _, span := telemetry.Span(ctx, tracer, "extra_process_upper", trace.WithAttributes(attr)); span != nil {
+		if _, span := tracer.Start(ctx, "extra_process_upper", withAttr); span != nil {
 			work(0.005, 0.0005)
 			span.End()
 		}
@@ -128,7 +128,7 @@ func processUpper(ctx context.Context, char rune) (rune, error) {
 
 	// these chars are extra slow and sometimes fail
 	if collections.SliceContains(char, []rune{'Z', 'A', 'T'}) {
-		if _, span := telemetry.Span(spctx, tracer, "extra_extra_process_upper", trace.WithAttributes(attr)); span != nil {
+		if _, span := tracer.Start(spctx, "extra_extra_process_upper", withAttr); span != nil {
 			defer span.End()
 			work(0.0001, 0.00008)
 
@@ -145,7 +145,7 @@ func processUpper(ctx context.Context, char rune) (rune, error) {
 }
 
 func randomUpper(ctx context.Context) rune {
-	_, span := telemetry.Span(ctx, tracer, "random_upper")
+	_, span := tracer.Start(ctx, "random_upper", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	// gets progressively slower throughout the hour
@@ -158,7 +158,7 @@ func randomUpper(ctx context.Context) rune {
 }
 
 func renderUpper(ctx context.Context, char rune) interface{} {
-	_, span := telemetry.Span(ctx, tracer, "render_upper")
+	_, span := tracer.Start(ctx, "render_upper", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	work(0.0002, 0.0001)
