@@ -3,46 +3,19 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-var (
-	globalTracer = defaultTracer()
-)
-
-type tracerHolder struct {
-	t trace.Tracer
-}
-
-func defaultTracer() *atomic.Value {
-	v := &atomic.Value{}
-	v.Store(tracerHolder{t: trace.NewNoopTracerProvider().Tracer("")})
-	return v
-}
-
-func SetTracer(t trace.Tracer) {
-	globalTracer.Store(tracerHolder{t})
-}
-
-func Tracer() trace.Tracer {
-	return globalTracer.Load().(tracerHolder).t
-}
-
-func RegisterTracer(ctx context.Context, name, version string) (func() error, error) {
-	resource, err := newResource(ctx, name, version)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create resource: %w", err)
-	}
-
+func ConfigureTracing(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
 	exporter, err := NewOTLPTraceExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
@@ -63,8 +36,8 @@ func RegisterTracer(ctx context.Context, name, version string) (func() error, er
 
 	otel.SetTracerProvider(provider)
 
-	return func() error {
-		return provider.Shutdown(context.Background())
+	return func(ctx context.Context) error {
+		return provider.Shutdown(ctx)
 	}, nil
 }
 
@@ -78,14 +51,25 @@ func NewOTLPTraceExporter(ctx context.Context) (*otlptrace.Exporter, error) {
 	)
 }
 
-func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+func Span(ctx context.Context, tracer trace.Tracer, name string, opts ...trace.SpanStartOption) (
+	context.Context,
+	trace.Span,
+) {
 	opts = append(opts, trace.WithSpanKind(trace.SpanKindInternal))
-	spctx, span := Tracer().Start(ctx, name, opts...)
-	return spctx, span
+	return tracer.Start(ctx, name, opts...)
 }
 
 func RecordError(ctx context.Context, err error) {
 	span := trace.SpanFromContext(ctx)
 	span.RecordError(err, trace.WithStackTrace(true))
 	span.SetStatus(codes.Error, err.Error())
+}
+
+func RecordResult(ctx context.Context, err error) {
+	if err != nil {
+		RecordError(ctx, err)
+		return
+	}
+	span := trace.SpanFromContext(ctx)
+	span.SetStatus(codes.Ok, codes.Ok.String())
 }

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -22,6 +23,8 @@ const (
 	serviceName    = "lower"
 	serviceVersion = "1.0.0"
 )
+
+var tracer trace.Tracer
 
 var letters = []rune{
 	'a',
@@ -66,13 +69,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	shutdownTracer, err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
+	client, err := telemetry.Configure(
+		ctx,
+		telemetry.WithServiceName(serviceName),
+		telemetry.WithServiceVersion(serviceVersion),
+	)
 	if err != nil {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
 	defer func() {
-		_ = shutdownTracer()
+		client.Shutdown(context.Background())
 	}()
+
+	tracer = otel.Tracer("main")
 
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(lowerHandler))
@@ -112,7 +121,7 @@ func randomLower(ctx context.Context) (rune, error) {
 }
 
 func getDigit(ctx context.Context, char rune) (string, error) {
-	spctx, span := telemetry.StartSpan(ctx, "digit", trace.WithAttributes(attribute.String("char", string(char))))
+	spctx, span := telemetry.Span(ctx, tracer, "digit", trace.WithAttributes(attribute.String("char", string(char))))
 	defer span.End()
 
 	var res struct {
@@ -127,7 +136,7 @@ func getDigit(ctx context.Context, char rune) (string, error) {
 }
 
 func work(ctx context.Context, await float64, spanName string, char rune) {
-	_, span := telemetry.StartSpan(ctx, spanName, trace.WithAttributes(attribute.String("char", string(char))))
+	_, span := telemetry.Span(ctx, tracer, spanName, trace.WithAttributes(attribute.String("char", string(char))))
 	time.Sleep(time.Duration(await))
 	span.End()
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -23,6 +24,8 @@ const (
 	serviceName    = "generator"
 	serviceVersion = "1.0.0"
 )
+
+var tracer trace.Tracer
 
 type generator struct {
 	name, url string
@@ -47,13 +50,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	shutdownTracer, err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
+	client, err := telemetry.Configure(
+		ctx,
+		telemetry.WithServiceName(serviceName),
+		telemetry.WithServiceVersion(serviceVersion),
+	)
 	if err != nil {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
 	defer func() {
-		_ = shutdownTracer()
+		client.Shutdown(context.Background())
 	}()
+
+	tracer = otel.Tracer("main")
 
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(generatorHandler))
@@ -75,7 +84,7 @@ func generatorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func generate(ctx context.Context) (string, error) {
-	spctx, span := telemetry.StartSpan(ctx, "generator.generate")
+	spctx, span := telemetry.Span(ctx, tracer, "generator.generate")
 	defer span.End()
 
 	var password []string
@@ -114,7 +123,7 @@ func generate(ctx context.Context) (string, error) {
 }
 
 func getChars(ctx context.Context, spanName, url string) ([]string, error) {
-	spctx, span := telemetry.StartSpan(ctx, spanName)
+	spctx, span := telemetry.Span(ctx, tracer, spanName)
 	defer span.End()
 
 	var x []string
@@ -127,7 +136,6 @@ func getChars(ctx context.Context, spanName, url string) ([]string, error) {
 		}
 
 		if err := telemetry.GetJSON(spctx, url, &resp); err != nil {
-			telemetry.RecordError(spctx, err)
 			return nil, fmt.Errorf("failed to fetch url '%s': %w", url, err)
 		}
 

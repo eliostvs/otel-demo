@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -36,6 +37,8 @@ const (
 	serviceVersion = "1.0.0"
 )
 
+var tracer trace.Tracer
+
 func init() {
 	rand.Seed(time.Now().Unix())
 }
@@ -48,21 +51,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	shutdownTracer, err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
+	client, err := telemetry.Configure(
+		ctx,
+		telemetry.WithServiceName(serviceName),
+		telemetry.WithServiceVersion(serviceVersion),
+	)
 	if err != nil {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
 	defer func() {
-		_ = shutdownTracer()
+		client.Shutdown(context.Background())
 	}()
 
-	// shutdownMeter, err := telemetry.RegisterMeter(ctx, serviceName, serviceVersion)
-	// if err != nil {
-	// 	log.Fatalf("failed to register meter: %v\n", err)
-	// }
-	// defer func() {
-	// 	_ = shutdownMeter()
-	// }()
+	tracer = otel.Tracer("main")
 
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(digitHandler))
@@ -80,7 +81,7 @@ func digitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func randomDigit(ctx context.Context) rune {
-	_, span := telemetry.StartSpan(ctx, "random_digit")
+	_, span := telemetry.Span(ctx, tracer, "random_digit")
 	defer span.End()
 
 	work(0.0003, 0.0001)
@@ -97,7 +98,7 @@ func randomDigit(ctx context.Context) rune {
 func processDigit(ctx context.Context, char rune) rune {
 	attr := attribute.String("char", string(char))
 
-	spctx, span := telemetry.StartSpan(ctx, "process_digit", trace.WithAttributes(attr))
+	ctx, span := telemetry.Span(ctx, tracer, "process_digit", trace.WithAttributes(attr))
 	defer span.End()
 
 	work(0.0001, 0.00005)
@@ -112,7 +113,7 @@ func processDigit(ctx context.Context, char rune) rune {
 
 	// these chars are extra slow
 	if collections.SliceContains(char, []rune{'4', '5', '6'}) {
-		if _, span := telemetry.StartSpan(spctx, "extra_process_digit", trace.WithAttributes(attr)); span != nil {
+		if _, span := telemetry.Span(ctx, tracer, "extra_process_digit", trace.WithAttributes(attr)); span != nil {
 			work(0.005, 0.0005)
 			span.End()
 		}
@@ -124,7 +125,7 @@ func processDigit(ctx context.Context, char rune) rune {
 func renderDigit(ctx context.Context, char rune) web.Envelope {
 	attr := attribute.String("char", string(char))
 
-	_, span := telemetry.StartSpan(ctx, "render_digit", trace.WithAttributes(attr))
+	_, span := telemetry.Span(ctx, tracer, "render_digit", trace.WithAttributes(attr))
 	defer span.End()
 
 	work(0.0002, 0.0001)

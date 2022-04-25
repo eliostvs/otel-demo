@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/username/otel-playground/internal/lib/environment"
+	"github.com/username/otel-playground/internal/lib/random"
 	"github.com/username/otel-playground/internal/lib/web"
 )
 
 func main() {
-	url := environment.Get("GENERATOR_URL", "http://localhost:5005/")
+	url := environment.Get("GENERATOR_URL", "http://generator:5000/")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
@@ -20,7 +21,7 @@ func main() {
 		select {
 		case <-quit:
 			os.Exit(0)
-		case <-time.After(time.Millisecond * 250):
+		case <-time.After(time.Duration(random.NumberInRange(351, 795)) * time.Millisecond):
 			getPassword(url)
 		}
 	}

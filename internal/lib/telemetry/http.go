@@ -36,7 +36,11 @@ func (se *ResponseError) Error() string {
 
 // GetJSON fetch the given url and try to decode the response as json
 // any error will be record to the trace
-func GetJSON(ctx context.Context, url string, target interface{}) error {
+func GetJSON(ctx context.Context, url string, target interface{}) (err error) {
+	defer func() {
+		RecordResult(ctx, err)
+	}()
+
 	res, err := otelhttp.Get(ctx, url)
 	if err != nil {
 		return fmt.Errorf("failed to fetch '%s': %w", url, err)
@@ -48,9 +52,7 @@ func GetJSON(ctx context.Context, url string, target interface{}) error {
 	}
 
 	if err := json.Decode(res.Body, target); err != nil {
-		err = fmt.Errorf("failed to read json body: %w", err)
-		RecordError(ctx, err)
-		return err
+		return fmt.Errorf("failed to read json body: %w", err)
 	}
 
 	return nil

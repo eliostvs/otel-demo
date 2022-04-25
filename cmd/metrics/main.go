@@ -20,13 +20,17 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	shutdown, err := telemetry.RegisterMeter(ctx, "foo", "0.0.1")
+	client, err := telemetry.Configure(
+		ctx,
+		telemetry.WithServiceName("metrics-experiments"),
+		telemetry.WithServiceVersion("0.0.1"),
+	)
 	if err != nil {
 		log.Fatal(err)
 
 	}
 	defer func() {
-		_ = shutdown()
+		client.Shutdown(context.Background())
 	}()
 
 	meter = global.MeterProvider().Meter("app_test")

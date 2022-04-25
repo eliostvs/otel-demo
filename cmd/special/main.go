@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -54,6 +55,8 @@ var characters = []rune{
 	'`',
 }
 
+var tracer trace.Tracer
+
 func init() {
 	rand.Seed(time.Now().Unix())
 }
@@ -66,13 +69,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	shutdownTracer, err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
+	client, err := telemetry.Configure(
+		ctx,
+		telemetry.WithServiceName(serviceName),
+		telemetry.WithServiceVersion(serviceVersion),
+	)
 	if err != nil {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
 	defer func() {
-		_ = shutdownTracer()
+		client.Shutdown(context.Background())
 	}()
+
+	tracer = otel.Tracer("main")
 
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(specialHandler))
@@ -96,7 +105,7 @@ func specialHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func randomSpecial(ctx context.Context) rune {
-	_, span := telemetry.StartSpan(ctx, "random_special")
+	_, span := telemetry.Span(ctx, tracer, "random_special")
 	defer span.End()
 
 	work(0.0003, 0.0001)
@@ -107,8 +116,9 @@ func randomSpecial(ctx context.Context) rune {
 }
 
 func processSpecial(ctx context.Context, char rune) (rune, error) {
-	spctx, span := telemetry.StartSpan(
+	spctx, span := telemetry.Span(
 		ctx,
+		tracer,
 		"process_special",
 		trace.WithAttributes(attribute.String("char", string(char))),
 	)
@@ -118,8 +128,9 @@ func processSpecial(ctx context.Context, char rune) (rune, error) {
 
 	// these chars are extra slow
 	if collections.SliceContains(char, []rune{'$', '@', '#', '?', '%'}) {
-		if _, span := telemetry.StartSpan(
+		if _, span := telemetry.Span(
 			spctx,
+			tracer,
 			"extra_process_special",
 			trace.WithAttributes(attribute.String("char", string(char))),
 		); span != nil {
@@ -141,7 +152,7 @@ func processSpecial(ctx context.Context, char rune) (rune, error) {
 func renderSpecial(ctx context.Context, char rune) interface{} {
 	attr := attribute.String("char", string(char))
 
-	_, span := telemetry.StartSpan(ctx, "render_special", trace.WithAttributes(attr))
+	_, span := telemetry.Span(ctx, tracer, "render_special", trace.WithAttributes(attr))
 	defer span.End()
 
 	span.AddEvent("processing special char", trace.WithAttributes(attr))

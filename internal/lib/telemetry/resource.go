@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	"go.opentelemetry.io/otel/attribute"
 	sdkresource "go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
@@ -41,7 +42,19 @@ func (l localMachineDetector) Detect(_ context.Context) (*sdkresource.Resource, 
 	), nil
 }
 
-func newResource(ctx context.Context, name, version string) (*sdkresource.Resource, error) {
+func newResource(ctx context.Context, cfg Config) (*sdkresource.Resource, error) {
+	var attributes = []attribute.KeyValue{
+		semconv.TelemetrySDKLanguageGo,
+	}
+
+	if len(cfg.serviceName) > 0 {
+		attributes = append(attributes, semconv.ServiceNameKey.String(cfg.serviceName))
+	}
+
+	if len(cfg.serviceVersion) > 0 {
+		attributes = append(attributes, semconv.ServiceVersionKey.String(cfg.serviceVersion))
+	}
+
 	return sdkresource.New(
 		ctx,
 		sdkresource.WithSchemaURL(semconv.SchemaURL),
@@ -50,10 +63,7 @@ func newResource(ctx context.Context, name, version string) (*sdkresource.Resour
 		sdkresource.WithHost(),
 		sdkresource.WithOS(),
 		sdkresource.WithProcess(),
-		sdkresource.WithAttributes(
-			semconv.ServiceNameKey.String(name),
-			semconv.ServiceVersionKey.String(version),
-		),
+		sdkresource.WithAttributes(attributes...),
 		sdkresource.WithDetectors(&localMachineDetector{}),
 	)
 }

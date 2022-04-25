@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -53,6 +54,8 @@ var letters = []rune{
 	'Z',
 }
 
+var tracer trace.Tracer
+
 func init() {
 	rand.Seed(time.Now().Unix())
 }
@@ -65,13 +68,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	shutdownTracer, err := telemetry.RegisterTracer(ctx, serviceName, serviceVersion)
+	client, err := telemetry.Configure(
+		ctx,
+		telemetry.WithServiceName(serviceName),
+		telemetry.WithServiceVersion(serviceVersion),
+	)
 	if err != nil {
 		log.Fatalf("failed to register tracer: %v\n", err)
 	}
 	defer func() {
-		_ = shutdownTracer()
+		client.Shutdown(context.Background())
 	}()
+
+	tracer = otel.Tracer("main")
 
 	mux := http.NewServeMux()
 	web.Handler(mux, "/", http.HandlerFunc(upperHandler))
@@ -97,7 +106,7 @@ func upperHandler(w http.ResponseWriter, r *http.Request) {
 func processUpper(ctx context.Context, char rune) (rune, error) {
 	attr := attribute.String("char", string(char))
 
-	spctx, span := telemetry.StartSpan(ctx, "random_upper", trace.WithAttributes(attr))
+	spctx, span := telemetry.Span(ctx, tracer, "random_upper", trace.WithAttributes(attr))
 	defer span.End()
 
 	span.AddEvent("processing_upper_char", trace.WithAttributes(attr))
@@ -111,7 +120,7 @@ func processUpper(ctx context.Context, char rune) (rune, error) {
 
 	// these chars are extra slow
 	if collections.SliceContains(char, []rune{'Z', 'X', 'R'}) {
-		if _, span := telemetry.StartSpan(ctx, "extra_process_upper", trace.WithAttributes(attr)); span != nil {
+		if _, span := telemetry.Span(ctx, tracer, "extra_process_upper", trace.WithAttributes(attr)); span != nil {
 			work(0.005, 0.0005)
 			span.End()
 		}
@@ -119,7 +128,7 @@ func processUpper(ctx context.Context, char rune) (rune, error) {
 
 	// these chars are extra slow and sometimes fail
 	if collections.SliceContains(char, []rune{'Z', 'A', 'T'}) {
-		if _, span := telemetry.StartSpan(spctx, "extra_extra_process_upper", trace.WithAttributes(attr)); span != nil {
+		if _, span := telemetry.Span(spctx, tracer, "extra_extra_process_upper", trace.WithAttributes(attr)); span != nil {
 			defer span.End()
 			work(0.0001, 0.00008)
 
@@ -136,7 +145,7 @@ func processUpper(ctx context.Context, char rune) (rune, error) {
 }
 
 func randomUpper(ctx context.Context) rune {
-	_, span := telemetry.StartSpan(ctx, "random_upper")
+	_, span := telemetry.Span(ctx, tracer, "random_upper")
 	defer span.End()
 
 	// gets progressively slower throughout the hour
@@ -149,7 +158,7 @@ func randomUpper(ctx context.Context) rune {
 }
 
 func renderUpper(ctx context.Context, char rune) interface{} {
-	_, span := telemetry.StartSpan(ctx, "render_upper")
+	_, span := telemetry.Span(ctx, tracer, "render_upper")
 	defer span.End()
 
 	work(0.0002, 0.0001)

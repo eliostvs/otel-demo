@@ -3,50 +3,21 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 	"time"
 
 	hostMetrics "go.opentelemetry.io/contrib/instrumentation/host"
 	runtimemetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/metric"
 	metricGlobal "go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/nonrecording"
 	sdkcontroller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
 	sdkprocessor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
 	sdkselector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	"go.opentelemetry.io/otel/sdk/resource"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-var (
-	globalMeter = defaultMeter()
-)
-
-type meterHolder struct {
-	m metric.Meter
-}
-
-func defaultMeter() *atomic.Value {
-	v := &atomic.Value{}
-	v.Store(meterHolder{m: nonrecording.NewNoopMeter()})
-	return v
-}
-
-func SetMeter(meter metric.Meter) {
-	globalMeter.Store(meterHolder{meter})
-}
-
-func Meter() metric.Meter {
-	return globalMeter.Load().(meterHolder).m
-}
-
-func RegisterMeter(ctx context.Context, name, version string) (func() error, error) {
-	resource, err := newResource(ctx, name, version)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create otel resource: %w", err)
-	}
-
+func ConfigureMetrics(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
 	exporter, err := newMetricExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
@@ -76,8 +47,7 @@ func RegisterMeter(ctx context.Context, name, version string) (func() error, err
 
 	metricGlobal.SetMeterProvider(pusher)
 
-	return func() error {
-		ctx := context.Background()
+	return func(ctx context.Context) error {
 		_ = pusher.Stop(ctx)
 		return exporter.Shutdown(ctx)
 	}, nil
