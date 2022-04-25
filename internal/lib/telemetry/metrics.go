@@ -47,9 +47,16 @@ func configureMetrics(ctx context.Context, resource *resource.Resource) (func(co
 
 	metricGlobal.SetMeterProvider(pusher)
 
-	return func(ctx context.Context) error {
-		_ = pusher.Stop(ctx)
-		return exporter.Shutdown(ctx)
+	return func(ctx context.Context) (lastErr error) {
+		if err := pusher.Stop(ctx); err != nil {
+			lastErr = err
+		}
+
+		if err := exporter.Shutdown(ctx); err != nil {
+			lastErr = err
+		}
+
+		return lastErr
 	}, nil
 }
 
