@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-func ConfigureMetrics(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
+func configureMetrics(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
 	exporter, err := newMetricExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric exporter: %w", err)

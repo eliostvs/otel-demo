@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 )
 
-func ConfigureTracing(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
-	exporter, err := NewOTLPTraceExporter(ctx)
+func configureTracing(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
+	exporter, err := newOTLPTraceExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
 	}
@@ -41,7 +41,7 @@ func ConfigureTracing(ctx context.Context, resource *resource.Resource) (func(co
 	}, nil
 }
 
-func NewOTLPTraceExporter(ctx context.Context) (*otlptrace.Exporter, error) {
+func newOTLPTraceExporter(ctx context.Context) (*otlptrace.Exporter, error) {
 	return otlptrace.New(
 		ctx,
 		otlptracegrpc.NewClient(

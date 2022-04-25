@@ -28,7 +28,7 @@ func Configure(ctx context.Context, opts ...Option) (Client, error) {
 		otel.SetErrorHandler(cfg.errorHandler)
 	}
 
-	for _, setup := range []setupFunc{ConfigureMetrics, ConfigureTracing} {
+	for _, setup := range []setupFunc{configureMetrics, configureTracing} {
 		shutdown, err := setup(ctx, res)
 		if err != nil {
 			continue
