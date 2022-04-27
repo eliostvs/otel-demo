@@ -7,9 +7,7 @@ import (
 )
 
 func Handler(mux *http.ServeMux, route string, handler http.Handler) {
-	handler = otelhttp.WithRouteTag(route, handler)
-	handler = otelhttp.NewHandler(handler, route)
-	mux.Handle(route, handler)
+	mux.Handle(route, otelhttp.WithRouteTag(route, handler))
 }
 
 func HealthCheckHandler(mux *http.ServeMux, service, version string) {

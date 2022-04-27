@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -33,7 +34,7 @@ func getPassword(url string) {
 		Cause    string `json:"cause"`
 	}
 
-	if err := web.GetJSON(url, &res); err != nil {
+	if err := web.GetJSON(context.Background(), url, &res); err != nil {
 		log.Printf("failed to get password: %v\n", err)
 		return
 	}

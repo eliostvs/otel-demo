@@ -69,7 +69,7 @@ func main() {
 	web.Handler(mux, "/", http.HandlerFunc(generatorHandler))
 	web.HealthCheckHandler(mux, serviceName, serviceVersion)
 
-	if err := web.Server(port, mux); err != nil {
+	if err := web.Server(port, mux, serviceName); err != nil {
 		log.Fatalf("failed to start server: %v\n", err)
 	}
 }
@@ -138,7 +138,7 @@ func getChars(ctx context.Context, spanName, url string) ([]string, error) {
 			Char string `json:"char"`
 		}
 
-		if err := telemetry.GetJSON(spctx, url, &resp); err != nil {
+		if err := web.GetJSON(spctx, url, &resp); err != nil {
 			return nil, fmt.Errorf("failed to fetch url '%s': %w", url, err)
 		}
 

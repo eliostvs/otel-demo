@@ -11,15 +11,21 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/filters"
 )
 
-func Server(port int, mux http.Handler) error {
+func Server(port int, handler http.Handler, operation string) error {
 	var wg sync.WaitGroup
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", port),
-		// ErrorLog:     log.New(app.logger, "", 0),
-		Handler:      mux,
+		Handler: otelhttp.NewHandler(
+			handler,
+			operation,
+			otelhttp.WithFilter(filters.Not(filters.Path("/healthcheck"))),
+		),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -32,9 +38,7 @@ func Server(port int, mux http.Handler) error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
 
-		// app.logger.PrintInfo("shutting down server", map[string]string{
-		// 	"signal": s.String(),
-		// })
+		log.Println("shutting down server")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -43,9 +47,7 @@ func Server(port int, mux http.Handler) error {
 			shutdownError <- err
 		}
 
-		// app.logger.PrintInfo("completing background tasks", map[string]string{
-		// 	"addr": srv.Addr,
-		// })
+		log.Println("completing background tasks")
 
 		wg.Wait()
 
@@ -53,12 +55,6 @@ func Server(port int, mux http.Handler) error {
 	}()
 
 	log.Printf("port: %d", port)
-	// app.logger.PrintInfo(
-	// 	"starting server", map[string]string{
-	// 		"addr": srv.Addr,
-	// 		"env":  app.config.env,
-	// 	},
-	// )
 
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
@@ -68,11 +64,7 @@ func Server(port int, mux http.Handler) error {
 		return err
 	}
 
-	// app.logger.PrintInfo(
-	// 	"stopped server", map[string]string{
-	// 		"addr": srv.Addr,
-	// 	},
-	// )
+	log.Printf("stopped server")
 
 	return nil
 }

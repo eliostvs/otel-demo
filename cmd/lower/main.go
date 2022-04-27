@@ -87,7 +87,7 @@ func main() {
 	web.Handler(mux, "/", http.HandlerFunc(lowerHandler))
 	web.HealthCheckHandler(mux, serviceName, serviceVersion)
 
-	if err := web.Server(port, mux); err != nil {
+	if err := web.Server(port, mux, serviceName); err != nil {
 		log.Fatalf("failed to start server: %v\n", err)
 	}
 }
@@ -133,7 +133,7 @@ func getDigit(ctx context.Context, char rune) (string, error) {
 		Char string `json:"char"`
 	}
 
-	if err := telemetry.GetJSON(spctx, digitURL, &res); err != nil {
+	if err := web.GetJSON(spctx, digitURL, &res); err != nil {
 		return "", fmt.Errorf("failed to fetch digit: %w", err)
 	}
 

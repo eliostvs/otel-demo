@@ -1,13 +1,24 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 
 	"github.com/username/otel-playground/internal/lib/collections"
 	libjson "github.com/username/otel-playground/internal/lib/json"
+	"github.com/username/otel-playground/internal/lib/telemetry"
 )
+
+func NewTransport() *otelhttp.Transport {
+	return otelhttp.NewTransport(
+		nil,
+		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
+	)
+}
 
 var successfulStatuses = []int{
 	http.StatusOK,
@@ -24,22 +35,16 @@ func (se *ResponseError) Error() string {
 	return fmt.Sprintf("response error for %s", se.Request.URL.Redacted())
 }
 
-func GetJSON(url string, dst interface{}) error {
-	c := http.Client{
-		Timeout: time.Duration(1) * time.Second,
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-		},
-	}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request %w", err)
-	}
+// GetJSON fetch the given url and try to decode the response as json
+// any error will be record to the trace
+func GetJSON(ctx context.Context, url string, dst interface{}) (err error) {
+	defer func() {
+		telemetry.RecordResult(ctx, err)
+	}()
 
-	req.Header.Add("Accept", `application/json`)
-	res, err := c.Do(req)
+	res, err := otelhttp.Get(ctx, url)
 	if err != nil {
-		return fmt.Errorf("failed to get url '%s' %w", url, err)
+		return fmt.Errorf("failed to fetch '%s': %w", url, err)
 	}
 	defer res.Body.Close()
 
@@ -48,7 +53,7 @@ func GetJSON(url string, dst interface{}) error {
 	}
 
 	if err := libjson.Decode(res.Body, dst); err != nil {
-		return fmt.Errorf("failed to decode body: %w", err)
+		return fmt.Errorf("failed to decode json body: %w", err)
 	}
 
 	return nil
