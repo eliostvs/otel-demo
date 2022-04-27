@@ -14,7 +14,7 @@ services:
       retries: 30
 
   uptrace:
-    image: "uptrace/uptrace:0.2.9"
+    image: "uptrace/uptrace:latest"
     container_name: uptrace
     ports:
       - "14317:14317/tcp" # OTLP
@@ -28,7 +28,7 @@ services:
         condition: service_healthy
 
   collector:
-    image: "otel/opentelemetry-collector:0.49.0"
+    image: "otel/opentelemetry-collector:0.48.0"
     container_name: collector
     ports:
       - "4317:4317/tcp"
