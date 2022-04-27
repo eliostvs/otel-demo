@@ -25,6 +25,8 @@ const (
 	serviceVersion = "1.0.0"
 )
 
+var tracer trace.Tracer
+
 var letters = []rune{
 	'A',
 	'B',
@@ -53,8 +55,6 @@ var letters = []rune{
 	'Y',
 	'Z',
 }
-
-var tracer trace.Tracer
 
 func init() {
 	rand.Seed(time.Now().Unix())
