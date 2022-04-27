@@ -65,7 +65,7 @@ func main() {
 	flag.IntVar(&port, "port", 5000, "The port to listen on")
 	flag.Parse()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	client, err := telemetry.Configure(

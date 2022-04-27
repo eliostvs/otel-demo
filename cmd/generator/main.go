@@ -12,6 +12,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/username/otel-playground/internal/lib/environment"
@@ -47,7 +48,7 @@ func main() {
 	flag.IntVar(&port, "port", 5000, "The port to listen on")
 	flag.Parse()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	client, err := telemetry.Configure(
@@ -74,7 +75,9 @@ func main() {
 }
 
 func generatorHandler(w http.ResponseWriter, r *http.Request) {
-	password, err := generate(r.Context())
+	bag, _ := baggage.Parse("username=donuts")
+	ctx := baggage.ContextWithBaggage(r.Context(), bag)
+	password, err := generate(ctx)
 	if err != nil {
 		web.ServerErrorResponse(w, err)
 		return

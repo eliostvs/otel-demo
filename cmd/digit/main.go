@@ -11,6 +11,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/username/otel-playground/internal/lib/collections"
@@ -48,7 +49,7 @@ func main() {
 	flag.IntVar(&port, "port", 5000, "The port to listen on")
 	flag.Parse()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	client, err := telemetry.Configure(
@@ -81,7 +82,13 @@ func digitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func randomDigit(ctx context.Context) rune {
-	_, span := tracer.Start(ctx, "random_digit", trace.WithSpanKind(trace.SpanKindInternal))
+	bag := baggage.FromContext(ctx)
+	_, span := tracer.Start(
+		ctx,
+		"random_digit",
+		trace.WithSpanKind(trace.SpanKindInternal),
+		trace.WithAttributes(attribute.String("username", bag.Member("username").Value())),
+	)
 	defer span.End()
 
 	work(0.0003, 0.0001)
