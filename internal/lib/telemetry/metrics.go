@@ -18,7 +18,7 @@ import (
 )
 
 func configureMetrics(ctx context.Context, resource *resource.Resource) (func(context.Context) error, error) {
-	exporter, err := newMetricExporter(ctx)
+	exporter, err := newOTLPMetricExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
 	}
@@ -60,9 +60,9 @@ func configureMetrics(ctx context.Context, resource *resource.Resource) (func(co
 	}, nil
 }
 
-func newMetricExporter(_ context.Context) (*otlpmetric.Exporter, error) {
+func newOTLPMetricExporter(ctx context.Context) (*otlpmetric.Exporter, error) {
 	return otlpmetric.New(
-		context.Background(),
+		ctx,
 		otlpmetricgrpc.NewClient(
 			otlpmetricgrpc.WithCompressor(gzip.Name),
 			otlpmetricgrpc.WithInsecure(),
