@@ -61,14 +61,6 @@ deps/upgrade: deps/tidy
 deploy/up:
 	docker-compose up --remove-orphans --build --detach
 
-.PHONY: deploy/uptrace
-deploy/uptrace:
-	docker-compose up --remove-orphans --build --detach uptrace
-
-.PHONY: deploy/collector
-deploy/collector:
-	docker-compose up --remove-orphans --build --detach collector
-
 .PHONY: deploy/down
 deploy/down:
 	docker-compose down
@@ -115,7 +107,3 @@ open/grafana:
 .PHONY: open/prometheus
 open/prometheus:
 	browse http://localhost:9090
-	
-.PHONY: run/metrics
-run/metrics:
-	go run cmd/metrics/main.go
