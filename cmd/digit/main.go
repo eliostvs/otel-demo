@@ -87,7 +87,7 @@ func randomDigit(ctx context.Context) rune {
 		ctx,
 		"random_digit",
 		trace.WithSpanKind(trace.SpanKindInternal),
-		trace.WithAttributes(attribute.String("username", bag.Member("username").Value())),
+		trace.WithAttributes(attribute.String("baggage.username", bag.Member("username").Value())),
 	)
 	defer span.End()
 
