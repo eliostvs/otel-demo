@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"time"
 
 	hostMetrics "go.opentelemetry.io/contrib/instrumentation/host"
 	runtimemetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
@@ -30,7 +29,6 @@ func configureMetrics(ctx context.Context, resource *resource.Resource) (func(co
 		),
 		sdkcontroller.WithExporter(exporter),
 		sdkcontroller.WithResource(resource),
-		sdkcontroller.WithCollectPeriod(30*time.Second),
 	)
 
 	if err := pusher.Start(ctx); err != nil {
