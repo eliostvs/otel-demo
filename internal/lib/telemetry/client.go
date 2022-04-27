@@ -22,7 +22,7 @@ func Configure(ctx context.Context, opts ...Option) (Client, error) {
 	if err != nil {
 		return Client{}, err
 	}
-	tel := Client{config: cfg}
+	c := Client{config: cfg}
 
 	if cfg.errorHandler != nil {
 		otel.SetErrorHandler(cfg.errorHandler)
@@ -35,15 +35,15 @@ func Configure(ctx context.Context, opts ...Option) (Client, error) {
 		}
 
 		if shutdown != nil {
-			tel.shutdownFuncs = append(tel.shutdownFuncs, shutdown)
+			c.shutdownFuncs = append(c.shutdownFuncs, shutdown)
 		}
 	}
 
-	return tel, nil
+	return c, nil
 }
 
-func (t Client) Shutdown(ctx context.Context) {
-	for _, shutdown := range t.shutdownFuncs {
+func (c Client) Shutdown(ctx context.Context) {
+	for _, shutdown := range c.shutdownFuncs {
 		if err := shutdown(ctx); err != nil {
 			log.Printf("failed to stop exporters: %s\n", err)
 		}
