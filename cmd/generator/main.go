@@ -69,7 +69,7 @@ func main() {
 	web.Handler(mux, "/", http.HandlerFunc(generatorHandler))
 	web.HealthCheckHandler(mux, serviceName, serviceVersion)
 
-	if err := web.Server(port, mux, serviceName); err != nil {
+	if err := web.Server(port, mux, serviceName, web.FilterURLs{"/healthcheck"}); err != nil {
 		log.Fatalf("failed to start server: %v\n", err)
 	}
 }

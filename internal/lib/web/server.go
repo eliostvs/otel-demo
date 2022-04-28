@@ -13,18 +13,17 @@ import (
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/filters"
 )
 
-func Server(port int, handler http.Handler, serverName string) error {
+func Server(port int, handler http.Handler, serverName string, filters FilterURLs) error {
 	var wg sync.WaitGroup
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", port),
 		Handler: otelhttp.NewHandler(
-			handler,
+			NewRequestCounterHandler(handler, filters),
 			serverName,
-			otelhttp.WithFilter(filters.Not(filters.Path("/healthcheck"))),
+			otelhttp.WithFilter(filters.Use),
 		),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
