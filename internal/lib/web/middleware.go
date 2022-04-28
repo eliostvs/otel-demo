@@ -66,7 +66,10 @@ func (h *RequestCounterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		1,
 		append(
 			semconv.HTTPClientAttributesFromHTTPRequest(r),
-			append(semconv.NetAttributesFromHTTPRequest("tcp", r), semconv.HTTPStatusCodeKey.Int(wi.statusCode))...,
+			append(
+				semconv.NetAttributesFromHTTPRequest("tcp", r),
+				semconv.HTTPStatusCodeKey.Int(wi.statusCode),
+			)...,
 		)...,
 	)
 }
